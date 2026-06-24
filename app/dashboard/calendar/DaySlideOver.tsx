@@ -1,10 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { X, Plus, CalendarIcon } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { X, Plus, CalendarIcon, Trash2, CheckSquare } from 'lucide-react'
 import { createClient } from '@/lib/supabase'
 import { getDaySchedule, markAttendance, deleteAttendance } from '@/lib/attendance'
 import type { DayScheduleResult, DayLecture } from '@/lib/attendance'
+import { getDayTodos, addTodo, toggleTodo, deleteTodo } from '@/lib/todos'
+import type { Todo } from '@/lib/todos'
 import type { Subject, AttendanceStatus } from '@/lib/types'
 import { fmtTime } from '@/lib/utils'
 import { Button } from '@/components/ui/Button'
@@ -40,6 +42,12 @@ export default function DaySlideOver({ date, userId, semesterId, onClose, onChan
   const [loading, setLoading] = useState(true)
   const [marking, setMarking] = useState<string | null>(null)
 
+  // Tasks
+  const [todos, setTodos] = useState<Todo[]>([])
+  const [todoText, setTodoText] = useState('')
+  const [todoAdding, setTodoAdding] = useState(false)
+  const todoInputRef = useRef<HTMLInputElement>(null)
+
   // Extra lecture modal
   const [elOpen, setElOpen] = useState(false)
   const [subjects, setSubjects] = useState<Pick<Subject, 'id' | 'name'>[]>([])
@@ -53,8 +61,12 @@ export default function DaySlideOver({ date, userId, semesterId, onClose, onChan
 
   async function load() {
     setLoading(true)
-    const r = await getDaySchedule(supabase, date, userId, semesterId)
+    const [r, todosData] = await Promise.all([
+      getDaySchedule(supabase, date, userId, semesterId),
+      getDayTodos(supabase, userId, date),
+    ])
     setResult(r)
+    setTodos(todosData)
     if (r.kind === 'schedule') {
       const initial: Record<string, AttendanceStatus | null> = {}
       for (const l of r.lectures) initial[l.id] = l.attendance.status
@@ -74,6 +86,30 @@ export default function DaySlideOver({ date, userId, semesterId, onClose, onChan
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [date])
+
+  async function handleAddTodo() {
+    const text = todoText.trim()
+    if (!text) return
+    setTodoAdding(true)
+    const created = await addTodo(supabase, userId, date, text)
+    if (created) setTodos(prev => [...prev, created])
+    setTodoText('')
+    setTodoAdding(false)
+    onChanged()  // refreshes calendar dot
+    todoInputRef.current?.focus()
+  }
+
+  async function handleToggle(todo: Todo) {
+    await toggleTodo(supabase, todo.id, !todo.done)
+    setTodos(prev => prev.map(t => t.id === todo.id ? { ...t, done: !t.done } : t))
+    onChanged()
+  }
+
+  async function handleDeleteTodo(id: string) {
+    await deleteTodo(supabase, id)
+    setTodos(prev => prev.filter(t => t.id !== id))
+    onChanged()
+  }
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) { if (e.key === 'Escape') onClose() }
@@ -248,8 +284,61 @@ export default function DaySlideOver({ date, userId, semesterId, onClose, onChan
           })}
         </div>
 
+        {/* Tasks section */}
+        {!loading && (
+          <div className="border-t border-[#EBEBEB] pt-4 space-y-2">
+            <div className="flex items-center gap-2 mb-1">
+              <CheckSquare size={13} className="text-[#D97706]" />
+              <p className="text-[12px] font-[500] text-[#6B6B6B]">Tasks</p>
+            </div>
+
+            {todos.map(todo => (
+              <div key={todo.id} className="flex items-center gap-2 group">
+                <button
+                  onClick={() => handleToggle(todo)}
+                  className={`w-4 h-4 rounded-[3px] border flex items-center justify-center shrink-0 transition-colors ${
+                    todo.done
+                      ? 'bg-[#D97706] border-[#D97706] text-white'
+                      : 'border-[#EBEBEB] hover:border-[#D97706]'
+                  }`}
+                >
+                  {todo.done && <span className="text-[9px] font-bold">✓</span>}
+                </button>
+                <span className={`flex-1 text-[13px] ${todo.done ? 'line-through text-[#ABABAB]' : 'text-[#111111]'}`}>
+                  {todo.text}
+                </span>
+                <button
+                  onClick={() => handleDeleteTodo(todo.id)}
+                  className="opacity-0 group-hover:opacity-100 text-[#ABABAB] hover:text-[#DC2626] transition-all"
+                >
+                  <Trash2 size={12} />
+                </button>
+              </div>
+            ))}
+
+            <div className="flex gap-2 pt-1">
+              <input
+                ref={todoInputRef}
+                value={todoText}
+                onChange={e => setTodoText(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleAddTodo()}
+                placeholder="Add a task…"
+                className="flex-1 text-[13px] bg-[#FAFAFA] border border-[#EBEBEB] rounded-[6px] px-2.5 py-1.5 outline-none focus:border-[#D97706] placeholder:text-[#ABABAB]"
+                disabled={todoAdding}
+              />
+              <button
+                onClick={handleAddTodo}
+                disabled={!todoText.trim() || todoAdding}
+                className="w-7 h-7 flex items-center justify-center rounded-[6px] bg-[#D97706] text-white disabled:opacity-40 hover:bg-[#B45309] transition-colors shrink-0"
+              >
+                <Plus size={13} />
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Footer */}
-        <div className="border-t border-[#EBEBEB] px-5 py-4">
+        <div className="border-t border-[#EBEBEB] px-5 py-4 mt-4">
           <Button
             variant="secondary"
             size="sm"

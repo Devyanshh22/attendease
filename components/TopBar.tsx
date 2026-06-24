@@ -11,6 +11,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/dashboard/subjects':  'Subjects',
   '/dashboard/timetable': 'Timetable',
   '/dashboard/reports':   'Reports',
+  '/dashboard/todos':     'Tasks',
   '/dashboard/settings':  'Settings',
 }
 

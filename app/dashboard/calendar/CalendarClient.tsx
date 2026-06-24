@@ -16,6 +16,7 @@ interface Props {
   subjects: Pick<Subject, 'id' | 'name' | 'short_code' | 'color'>[]
   semesterId: string
   userId: string
+  todoCounts: Record<string, number>
 }
 
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December']
@@ -32,7 +33,7 @@ const STATUS_DOT: Record<string, string> = {
   none:       '',
 }
 
-export default function CalendarClient({ year, month, today, calendarData, subjects, semesterId, userId }: Props) {
+export default function CalendarClient({ year, month, today, calendarData, subjects, semesterId, userId, todoCounts }: Props) {
   const router = useRouter()
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
 
@@ -112,6 +113,7 @@ export default function CalendarClient({ year, month, today, calendarData, subje
             const dayNum = new Date(dateStr + 'T12:00:00').getDate()
             const statusDot = cell?.status ? STATUS_DOT[cell.status] : ''
             const isLastRow = idx >= cells.length - 7
+            const hasTodos = (todoCounts[dateStr] ?? 0) > 0
 
             return (
               <button
@@ -149,10 +151,14 @@ export default function CalendarClient({ year, month, today, calendarData, subje
                   </div>
                 )}
 
-                {/* Status indicator */}
-                <div className="mt-auto pt-1">
-                  {statusDot && (
-                    <span className={cn('w-1.5 h-1.5 rounded-full inline-block', statusDot)} />
+                {/* Status + todo indicators */}
+                <div className="mt-auto pt-1 flex items-center justify-between">
+                  {statusDot
+                    ? <span className={cn('w-1.5 h-1.5 rounded-full inline-block', statusDot)} />
+                    : <span />
+                  }
+                  {hasTodos && (
+                    <span className="w-1.5 h-1.5 rounded-[2px] inline-block bg-[#D97706]" title="Has tasks" />
                   )}
                 </div>
               </button>
@@ -168,6 +174,7 @@ export default function CalendarClient({ year, month, today, calendarData, subje
           { dot: 'bg-[#D97706]', label: 'Partial' },
           { dot: 'bg-[#DC2626]', label: 'Missed all' },
           { dot: 'bg-[#ABABAB]', label: 'Holiday / no college' },
+          { dot: 'bg-[#D97706] rounded-[2px]', label: 'Has tasks' },
         ].map(({ dot, label }) => (
           <div key={label} className="flex items-center gap-1.5 text-[12px] text-[#6B6B6B]">
             <span className={cn('w-2 h-2 rounded-full', dot)} />

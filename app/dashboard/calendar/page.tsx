@@ -3,6 +3,7 @@ import { createServerSupabaseClient } from '@/lib/supabase-server'
 
 export const metadata: Metadata = { title: 'Calendar' }
 import { getMonthCalendarData } from '@/lib/attendance'
+import { getMonthTodoCounts } from '@/lib/todos'
 import type { Subject } from '@/lib/types'
 import CalendarClient from './CalendarClient'
 
@@ -36,7 +37,10 @@ export default async function CalendarPage({
     .from('subjects').select('id, name, short_code, color').eq('semester_id', semester.id)
   const subjects = (subjectsRaw ?? []) as Pick<Subject, 'id' | 'name' | 'short_code' | 'color'>[]
 
-  const calendarData = await getMonthCalendarData(supabase, year, month, user!.id, semester.id)
+  const [calendarData, todoCounts] = await Promise.all([
+    getMonthCalendarData(supabase, year, month, user!.id, semester.id),
+    getMonthTodoCounts(supabase, user!.id, year, month),
+  ])
 
   return (
     <CalendarClient
@@ -47,6 +51,7 @@ export default async function CalendarPage({
       subjects={subjects}
       semesterId={semester.id}
       userId={user!.id}
+      todoCounts={todoCounts}
     />
   )
 }

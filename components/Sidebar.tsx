@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import {
   CalendarDays, LayoutDashboard, BookOpen,
-  Clock, BarChart2, Settings, Sun, MoreHorizontal,
+  Clock, BarChart2, Settings, Sun, MoreHorizontal, CheckSquare,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -14,9 +14,10 @@ const NAV = [
   { href: '/dashboard/calendar',  label: 'Calendar',  Icon: CalendarDays },
   { href: '/dashboard/overview',  label: 'Dashboard', Icon: LayoutDashboard },
   { href: '/dashboard/subjects',  label: 'Subjects',  Icon: BookOpen },
-  { href: '/dashboard/timetable', label: 'Timetable', Icon: Clock },
-  { href: '/dashboard/reports',   label: 'Reports',   Icon: BarChart2 },
-  { href: '/dashboard/settings',  label: 'Settings',  Icon: Settings },
+  { href: '/dashboard/timetable', label: 'Timetable',  Icon: Clock },
+  { href: '/dashboard/todos',     label: 'Tasks',      Icon: CheckSquare },
+  { href: '/dashboard/reports',   label: 'Reports',    Icon: BarChart2 },
+  { href: '/dashboard/settings',  label: 'Settings',   Icon: Settings },
 ]
 
 interface Props {
@@ -73,6 +74,7 @@ const MOBILE_TABS = [
 
 const MORE_ITEMS = [
   { href: '/dashboard/timetable', label: 'Timetable', Icon: Clock },
+  { href: '/dashboard/todos',     label: 'Tasks',     Icon: CheckSquare },
   { href: '/dashboard/subjects',  label: 'Subjects',  Icon: BookOpen },
   { href: '/dashboard/reports',   label: 'Reports',   Icon: BarChart2 },
   { href: '/dashboard/settings',  label: 'Settings',  Icon: Settings },
