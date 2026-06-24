@@ -9,11 +9,12 @@ import { Input } from '@/components/ui/Input'
 import { Card } from '@/components/ui/Card'
 import { Modal } from '@/components/ui/Modal'
 import { Badge } from '@/components/ui/Badge'
-import { Check, Plus } from 'lucide-react'
+import { ConfirmModal } from '@/components/ui/ConfirmModal'
+import { Check, Plus, Trash2 } from 'lucide-react'
 
 interface Props { semesters: Semester[]; email: string; userId: string }
 
-export default function SettingsClient({ semesters, email }: Props) {
+export default function SettingsClient({ semesters, email, userId }: Props) {
   const router = useRouter()
 
   // ── Password
@@ -25,6 +26,10 @@ export default function SettingsClient({ semesters, email }: Props) {
   const [newSem, setNewSem] = useState({ name: '', start: '', end: '' })
   const [semSaving, setSemSaving] = useState(false)
   const [semMsg, setSemMsg] = useState('')
+
+  // ── Delete semester
+  const [semToDelete, setSemToDelete] = useState<Semester | null>(null)
+  const [semDeleting, setSemDeleting] = useState(false)
 
   // ── Delete account
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -64,6 +69,28 @@ export default function SettingsClient({ semesters, email }: Props) {
     router.refresh()
   }
 
+  async function deleteSemester() {
+    if (!semToDelete) return
+    setSemDeleting(true)
+    const semId = semToDelete.id
+
+    // API route handles Supabase deletion + Redis cache invalidation
+    await fetch('/api/delete-semester', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ semesterId: semId }),
+    })
+
+    setSemDeleting(false)
+    setSemToDelete(null)
+
+    if (semToDelete.is_active) {
+      router.push('/onboarding')
+    } else {
+      router.refresh()
+    }
+  }
+
   async function deleteAccount() {
     if (deleteConfirm !== 'DELETE') return
     setDeleting(true)
@@ -97,6 +124,13 @@ export default function SettingsClient({ semesters, email }: Props) {
                 ? <Badge variant="accent"><Check size={10} className="mr-1" />Active</Badge>
                 : <Button size="sm" variant="secondary" onClick={() => setActive(s.id)}>Set active</Button>
               }
+              <button
+                onClick={() => setSemToDelete(s)}
+                className="ml-1 p-1 rounded text-[#ABABAB] hover:text-[#DC2626] hover:bg-[#FEF2F2] transition-colors"
+                title="Delete semester"
+              >
+                <Trash2 size={14} />
+              </button>
             </div>
           ))}
         </div>
@@ -140,6 +174,16 @@ export default function SettingsClient({ semesters, email }: Props) {
         <p className="text-[13px] text-[#6B6B6B] mb-4">Deleting your account is permanent. All data will be erased.</p>
         <Button variant="danger" size="sm" onClick={() => setDeleteOpen(true)}>Delete account</Button>
       </Card>
+
+      <ConfirmModal
+        open={!!semToDelete}
+        onClose={() => setSemToDelete(null)}
+        onConfirm={deleteSemester}
+        title="Delete semester"
+        description={`"${semToDelete?.name}" and all its subjects, timetable, and attendance records will be permanently deleted. This cannot be undone.`}
+        confirmLabel="Delete semester"
+        loading={semDeleting}
+      />
 
       <Modal open={deleteOpen} onClose={() => { setDeleteOpen(false); setDeleteConfirm('') }} title="Delete account">
         <div className="space-y-4">
