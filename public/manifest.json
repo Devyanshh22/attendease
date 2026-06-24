@@ -1,0 +1,19 @@
+{
+  "name": "AttendEase",
+  "short_name": "AttendEase",
+  "description": "College attendance calculator",
+  "start_url": "/dashboard/today",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#ffffff",
+  "theme_color": "#3B6FE8",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
