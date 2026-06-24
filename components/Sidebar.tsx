@@ -2,9 +2,10 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useEffect, useRef, useState } from 'react'
 import {
   CalendarDays, LayoutDashboard, BookOpen,
-  Clock, BarChart2, Settings, Sun,
+  Clock, BarChart2, Settings, Sun, MoreHorizontal,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -60,18 +61,39 @@ export function Sidebar({ semesterName }: Props) {
   )
 }
 
-// Mobile bottom tab bar — Today, Calendar, Dashboard, Timetable
+// Mobile bottom tab bar — Today, Calendar, Dashboard, More (dropdown)
 const MOBILE_TABS = [
-  { href: '/dashboard/today',     label: 'Today',     Icon: Sun },
-  { href: '/dashboard/calendar',  label: 'Calendar',  Icon: CalendarDays },
-  { href: '/dashboard/overview',  label: 'Dashboard', Icon: LayoutDashboard },
+  { href: '/dashboard/today',    label: 'Today',    Icon: Sun },
+  { href: '/dashboard/calendar', label: 'Calendar', Icon: CalendarDays },
+  { href: '/dashboard/overview', label: 'Dashboard', Icon: LayoutDashboard },
+]
+
+const MORE_ITEMS = [
   { href: '/dashboard/timetable', label: 'Timetable', Icon: Clock },
+  { href: '/dashboard/subjects',  label: 'Subjects',  Icon: BookOpen },
+  { href: '/dashboard/reports',   label: 'Reports',   Icon: BarChart2 },
+  { href: '/dashboard/settings',  label: 'Settings',  Icon: Settings },
 ]
 
 export function BottomTabBar() {
   const pathname = usePathname()
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  // Close on outside click
+  useEffect(() => {
+    if (!open) return
+    function handler(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  const moreActive = MORE_ITEMS.some(({ href }) => pathname === href || pathname.startsWith(href + '/'))
+
   return (
-    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-[#EBEBEB] flex">
+    <nav className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-[#EBEBEB] flex" ref={ref}>
       {MOBILE_TABS.map(({ href, label, Icon }) => {
         const active = pathname === href || pathname.startsWith(href + '/')
         return (
@@ -88,6 +110,43 @@ export function BottomTabBar() {
           </Link>
         )
       })}
+
+      {/* More button */}
+      <button
+        onClick={() => setOpen(v => !v)}
+        className={cn(
+          'flex-1 flex flex-col items-center gap-1 py-2.5 text-[11px] transition-colors duration-150',
+          open || moreActive ? 'text-[#5B5BD6]' : 'text-[#ABABAB]'
+        )}
+      >
+        <MoreHorizontal size={20} strokeWidth={open || moreActive ? 2.2 : 1.8} />
+        More
+      </button>
+
+      {/* Popup menu */}
+      {open && (
+        <div className="absolute bottom-[calc(100%+6px)] right-2 bg-white border border-[#EBEBEB] rounded-[12px] shadow-lg py-1.5 min-w-[160px] z-50">
+          {MORE_ITEMS.map(({ href, label, Icon }) => {
+            const active = pathname === href || pathname.startsWith(href + '/')
+            return (
+              <Link
+                key={href}
+                href={href}
+                onClick={() => setOpen(false)}
+                className={cn(
+                  'flex items-center gap-3 px-4 py-2.5 text-[14px] transition-colors',
+                  active
+                    ? 'text-[#5B5BD6] font-[500] bg-[rgba(91,91,214,0.06)]'
+                    : 'text-[#111111] hover:bg-[#F5F5F5]'
+                )}
+              >
+                <Icon size={16} strokeWidth={active ? 2.2 : 1.8} />
+                {label}
+              </Link>
+            )
+          })}
+        </div>
+      )}
     </nav>
   )
 }

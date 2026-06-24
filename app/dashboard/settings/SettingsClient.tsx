@@ -14,7 +14,7 @@ import { Check, Plus, Trash2 } from 'lucide-react'
 
 interface Props { semesters: Semester[]; email: string; userId: string }
 
-export default function SettingsClient({ semesters, email, userId }: Props) {
+export default function SettingsClient({ semesters, email }: Props) {
   const router = useRouter()
 
   // ── Password
